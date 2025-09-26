@@ -9,7 +9,7 @@ require('dotenv').config();
 const { summarizeWithAzure } = require('./azure');
 
 const store = new Store({ name: 'settings' });
-let tray, inputWindow, summaryWindow;
+let tray, mainWindow;
 
 function getUserDataDir() {
   return app.getPath('userData');
@@ -145,36 +145,21 @@ function createTray() {
   tray.on('context-menu', () => tray.popUpContextMenu(ctx));
 }
 
-function createInputWindow() {
-  inputWindow = new BrowserWindow({
-    width: 420,
-    height: 320,
-    show: false,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    title: 'What are you working on?',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
-  });
-  inputWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  inputWindow.on('closed', () => { inputWindow = null; });
-}
-
-function createSummaryWindow() {
-  summaryWindow = new BrowserWindow({
-    width: 560,
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 720,
     height: 520,
     show: false,
     resizable: true,
+    alwaysOnTop: true,
     skipTaskbar: true,
-    title: 'Daily Summary',
+    title: 'Scrum Update Tracker',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   });
-  summaryWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 function positionNearTray(win) {
@@ -201,23 +186,23 @@ function positionNearTray(win) {
 
 function showInput() {
   if (!withinWorkHours()) return;
-  if (!inputWindow || inputWindow.isDestroyed()) {
-    createInputWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
   }
-  inputWindow.webContents.send('mode', { mode: 'input' });
-  positionNearTray(inputWindow);
-  inputWindow.show();
-  inputWindow.focus();
+  mainWindow.webContents.send('mode', { mode: 'input' });
+  positionNearTray(mainWindow);
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function showSummary(content) {
-  if (!summaryWindow || summaryWindow.isDestroyed()) {
-    createSummaryWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
   }
-  summaryWindow.webContents.send('mode', { mode: 'summary', content });
-  positionNearTray(summaryWindow);
-  summaryWindow.show();
-  summaryWindow.focus();
+  mainWindow.webContents.send('mode', { mode: 'summary', content });
+  positionNearTray(mainWindow);
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function notify(title, body, onClick) {
@@ -259,13 +244,12 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = 'system';
   initializeBaseDir();
   createTray();
-  createInputWindow();
-  createSummaryWindow();
+  createMainWindow();
   scheduleJobs();
 
   ipcMain.handle('save-entry', (_e, text) => {
     if (text && text.trim().length) saveEntry(text.trim());
-    if (inputWindow && !inputWindow.isDestroyed()) inputWindow.hide();
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
     return true;
   });
 
@@ -284,7 +268,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('hide-input', () => {
-    if (inputWindow && !inputWindow.isDestroyed()) inputWindow.hide();
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
     return true;
   });
 
