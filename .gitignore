@@ -1,0 +1,32 @@
+node_modules/
+dist/
+out/
+build/
+release/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Electron-builder
+*.dmg
+*.exe
+*.AppImage
+*.snap
+*.msi
+*.pkg
+*.deb
+*.zip
+*.tar.gz
+
