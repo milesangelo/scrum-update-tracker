@@ -38,6 +38,8 @@
         <span class="muted">Copied to clipboard on summarize</span>
       </div>
       <pre id="summary"></pre>
+      <h4>Today's entries</h4>
+      <div id="entries"></div>
     </div>
 
     <script>
@@ -58,8 +60,39 @@
           $('#entry').focus();
         } else if (mode === 'summary') {
           $('#summary').textContent = content || '';
+          renderEntries();
+          if (!content) {
+            window.scrum.summarizeNow().then(s => {
+              $('#summary').textContent = s || '';
+            });
+          }
         }
       });
+
+      function renderEntries() {
+        window.scrum.getToday().then(list => {
+          const container = $('#entries');
+          container.innerHTML = '';
+          if (!list || list.length === 0) {
+            const p = document.createElement('p');
+            p.className = 'muted';
+            p.textContent = 'No entries today.';
+            container.appendChild(p);
+            return;
+          }
+          const ul = document.createElement('ul');
+          ul.style.paddingLeft = '18px';
+          list
+            .sort((a, b) => new Date(a.ts) - new Date(b.ts))
+            .forEach(e => {
+              const li = document.createElement('li');
+              const time = new Date(e.ts).toLocaleTimeString();
+              li.textContent = `[${time}] ${e.text}`;
+              ul.appendChild(li);
+            });
+          container.appendChild(ul);
+        });
+      }
 
       $('#save').addEventListener('click', async () => {
         await window.scrum.saveEntry($('#entry').value);
@@ -79,6 +112,7 @@
       $('#refresh').addEventListener('click', async () => {
         const s = await window.scrum.summarizeNow();
         $('#summary').textContent = s;
+        renderEntries();
       });
 
       // default view when opened manually

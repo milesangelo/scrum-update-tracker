@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, clipboard, nativeTheme, Tray, Menu, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, clipboard, nativeTheme, Tray, Menu, screen, nativeImage, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
@@ -15,15 +15,42 @@ function getUserDataDir() {
   return app.getPath('userData');
 }
 
+function getBaseDir() {
+  const configured = store.get('baseDir');
+  if (typeof configured === 'string' && configured.length) return configured;
+  return getUserDataDir();
+}
+
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function setBaseDir(dirPath) {
+  try {
+    ensureDir(dirPath);
+    store.set('baseDir', dirPath);
+    return true;
+  } catch (e) {
+    console.error('Failed to set base directory:', e);
+    return false;
+  }
+}
+
+function openBaseDir() {
+  const dir = getBaseDir();
+  ensureDir(dir);
+  shell.openPath(dir);
+}
+
 function entriesPathFor(dateStr) {
-  const dir = path.join(getUserDataDir(), 'entries');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const dir = path.join(getBaseDir(), 'entries');
+  ensureDir(dir);
   return path.join(dir, `entries-${dateStr}.json`);
 }
 
 function summariesPath() {
-  const dir = path.join(getUserDataDir(), 'summaries');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const dir = path.join(getBaseDir(), 'summaries');
+  ensureDir(dir);
   return dir;
 }
 
@@ -75,11 +102,38 @@ function createTray() {
     { label: 'Add update now', click: () => showInput() },
     { label: 'Show today summary', click: () => showSummary() },
     { type: 'separator' },
+    {
+      label: 'Preferences',
+      submenu: [
+        {
+          label: 'Choose Data Folder…',
+          click: async () => {
+            const ret = await dialog.showOpenDialog({
+              properties: ['openDirectory', 'createDirectory']
+            });
+            if (!ret.canceled && ret.filePaths && ret.filePaths[0]) {
+              const ok = setBaseDir(ret.filePaths[0]);
+              notify('Data Folder', ok ? 'Folder updated.' : 'Failed to update folder.');
+            }
+          }
+        },
+        { label: 'Open Data Folder', click: () => openBaseDir() },
+        {
+          label: 'Use Default Folder',
+          click: () => {
+            store.delete('baseDir');
+            notify('Data Folder', 'Reverted to default.');
+          }
+        }
+      ]
+    },
+    { type: 'separator' },
     { label: 'Quit', role: 'quit' }
   ]);
   tray.setToolTip('Scrum Update Tracker');
-  tray.setContextMenu(ctx);
   tray.on('click', () => showInput());
+  tray.on('right-click', () => tray.popUpContextMenu(ctx));
+  tray.on('context-menu', () => tray.popUpContextMenu(ctx));
 }
 
 function createInputWindow() {
