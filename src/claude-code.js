@@ -6,6 +6,7 @@ const os = require("os");
 const systemPrompt = `You are helping prepare daily scrum updates.
 
 Given a chronological list of short work notes for a single day:
+- If a work note contains a ticket number, fetch the ticket details from Jira and use the description to add more context to the work note.
 - Collapse redundancy and cluster by topic.
 - Produce 3-6 concise bullets focused on outcomes, shipped work, blockers, and next steps.
 - Prefer clear, non-verbose language suitable for a standup update.
@@ -47,7 +48,7 @@ ${notes}`;
     // Use spawn with stdin pipe
     const claudeProcess = spawn("claude", ["--print"], {
       shell: true,
-      windowsHide: true
+      windowsHide: true,
     });
 
     let stdout = "";
