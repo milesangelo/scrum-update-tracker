@@ -42,6 +42,15 @@ function openBaseDir() {
   shell.openPath(dir);
 }
 
+function initializeBaseDir() {
+  const existing = store.get('baseDir');
+  if (typeof existing !== 'string' || existing.length === 0) {
+    setBaseDir(getUserDataDir());
+  } else {
+    ensureDir(existing);
+  }
+}
+
 function entriesPathFor(dateStr) {
   const dir = path.join(getBaseDir(), 'entries');
   ensureDir(dir);
@@ -121,8 +130,8 @@ function createTray() {
         {
           label: 'Use Default Folder',
           click: () => {
-            store.delete('baseDir');
-            notify('Data Folder', 'Reverted to default.');
+            const ok = setBaseDir(getUserDataDir());
+            notify('Data Folder', ok ? 'Using default folder.' : 'Failed to update folder.');
           }
         }
       ]
@@ -248,6 +257,7 @@ function scheduleJobs() {
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
   nativeTheme.themeSource = 'system';
+  initializeBaseDir();
   createTray();
   createInputWindow();
   createSummaryWindow();
