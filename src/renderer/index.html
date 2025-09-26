@@ -7,15 +7,129 @@
     <style>
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
       .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
-      .sidebar { border-right: 1px solid #ddd; padding: 12px; overflow: auto; }
+      .sidebar { 
+        border-right: 1px solid #ddd; 
+        padding: 12px; 
+        overflow: auto; 
+        display: flex;
+        flex-direction: column;
+      }
       .content { padding: 16px; overflow: auto; }
       textarea { width: 100%; height: 160px; }
       .row { margin-top: 12px; display: flex; gap: 8px; }
       pre { white-space: pre-wrap; }
       .muted { color: #666; font-size: 12px; }
-      .entry-header { display: flex; justify-content: space-between; align-items: center; }
-      .entry-list { margin: 8px 0 0; padding-left: 18px; }
-      .collapse-btn { cursor: pointer; }
+      .entries-container {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 12px;
+      }
+      .date-group {
+        margin-bottom: 16px;
+      }
+      .date-header {
+        font-weight: 600;
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 8px;
+        padding: 4px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .entry-item, .summary-item {
+        background: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .entry-item:hover, .summary-item:hover {
+        background: #ebebeb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .entry-time {
+        font-size: 11px;
+        color: #888;
+        margin-right: 8px;
+      }
+      .entry-text {
+        color: #333;
+        display: inline;
+      }
+      .summary-item {
+        background: #e8f5e9;
+        border-color: #4caf50;
+        margin-top: 8px;
+      }
+      .summary-item:hover {
+        background: #c8e6c9;
+      }
+      .summary-label {
+        font-weight: 600;
+        color: #2e7d32;
+        font-size: 11px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .summary-preview {
+        font-size: 12px;
+        color: #1b5e20;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.4;
+      }
+      .item-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: none;
+        gap: 4px;
+      }
+      .entry-item:hover .item-actions,
+      .summary-item:hover .item-actions {
+        display: flex;
+      }
+      .action-btn {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .action-btn:hover {
+        background: #f0f0f0;
+      }
+      .action-btn.delete {
+        color: #d32f2f;
+      }
+      .summarize-btn {
+        background: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        width: 100%;
+        transition: background 0.2s;
+      }
+      .summarize-btn:hover {
+        background: #1565c0;
+      }
+      .no-summaries {
+        text-align: center;
+        color: #999;
+        padding: 24px;
+        font-size: 13px;
+      }
     </style>
     <style>
     @media (prefers-color-scheme: dark) {
@@ -23,20 +137,54 @@
       textarea { background: #2b2b2b; color: #e0e0e0; border: 1px solid #3c3c3c; }
       button { background: #3a3a3a; color: #fff; border: 1px solid #555; }
       .muted { color: #aaaaaa; }
+      .sidebar { border-right-color: #3c3c3c; }
+      .date-header { 
+        color: #bbb; 
+        border-bottom-color: #3c3c3c;
+      }
+      .entry-item, .summary-item {
+        background: #2b2b2b;
+        border-color: #3c3c3c;
+      }
+      .entry-item:hover, .summary-item:hover {
+        background: #333;
+      }
+      .entry-time { color: #888; }
+      .entry-text { color: #e0e0e0; }
+      .summary-item {
+        background: #263238;
+        border-color: #4caf50;
+      }
+      .summary-item:hover {
+        background: #37474f;
+      }
+      .summary-label { color: #81c784; }
+      .summary-preview { color: #a5d6a7; }
+      .action-btn {
+        background: #3a3a3a;
+        border-color: #555;
+        color: #e0e0e0;
+      }
+      .action-btn:hover {
+        background: #444;
+      }
+      .summarize-btn {
+        background: #2196f3;
+      }
+      .summarize-btn:hover {
+        background: #1976d2;
+      }
     }
     </style>
   </head>
   <body>
     <div class="app">
       <aside class="sidebar">
-        <div class="entry-header">
-          <h4 style="margin:0">Today</h4>
-          <button id="toggle-entries" class="collapse-btn">Collapse</button>
+        <h4 style="margin:0 0 12px 0">Work History</h4>
+        <div class="entries-container" id="entries-container">
+          <div class="no-summaries" id="no-entries">No entries yet</div>
         </div>
-        <div id="entries-container">
-          <div class="muted" id="count" style="margin-top:6px"></div>
-          <ul id="entries" class="entry-list"></ul>
-        </div>
+        <button id="summarize-now-btn" class="summarize-btn">Summarize Today with AI</button>
       </aside>
       <main class="content">
         <div id="input-panel" style="display:none">
@@ -61,6 +209,8 @@
     <script>
       const $ = (s) => document.querySelector(s);
       let mode = 'input';
+      let currentEditingSummary = null;
+      let currentEditingEntry = null;
 
       function setMode(m) {
         mode = m;
@@ -72,42 +222,225 @@
         setMode(mode);
         if (mode === 'input') {
           $('#entry').value = '';
-          updateEntries();
           $('#entry').focus();
         } else if (mode === 'summary') {
           $('#summary').textContent = content || '';
-          updateEntries();
           if (!content) {
             window.scrum.summarizeNow().then(s => {
               $('#summary').textContent = s || '';
+              loadEntries(); // Reload entries after creating new summary
             });
           }
         }
       });
 
-      function updateEntries() {
-        window.scrum.getToday().then(list => {
-          const countEl = $('#count');
-          countEl.textContent = `${(list || []).length} entries today`;
-          const ul = $('#entries');
-          ul.innerHTML = '';
-          if (!list || list.length === 0) {
-            return;
+      async function loadEntries() {
+        const entriesByDate = await window.scrum.getEntriesByDate();
+        const container = $('#entries-container');
+        
+        const dates = Object.keys(entriesByDate).sort((a, b) => b.localeCompare(a));
+        
+        if (dates.length === 0) {
+          container.innerHTML = '<div class="no-summaries">No entries yet</div>';
+          return;
+        }
+
+        container.innerHTML = dates.map(dateStr => {
+          const data = entriesByDate[dateStr];
+          const entries = data.entries || [];
+          
+          let html = `<div class="date-group" data-date="${dateStr}">
+            <div class="date-header">${data.displayDate}</div>`;
+          
+          // Individual entries
+          entries.forEach((entry, index) => {
+            const time = new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            html += `
+              <div class="entry-item" data-date="${dateStr}" data-index="${index}">
+                <div class="item-actions">
+                  <button class="action-btn edit" onclick="editEntry('${dateStr}', ${index})">Edit</button>
+                  <button class="action-btn delete" onclick="deleteEntry('${dateStr}', ${index})">Delete</button>
+                </div>
+                <span class="entry-time">${time}</span>
+                <span class="entry-text">${escapeHtml(entry.text)}</span>
+              </div>`;
+          });
+          
+          // Summary (if exists)
+          if (data.summary) {
+            html += `
+              <div class="summary-item" data-date="${dateStr}">
+                <div class="item-actions">
+                  <button class="action-btn edit" onclick="editSummary('${dateStr}')">Edit</button>
+                  <button class="action-btn delete" onclick="deleteSummary('${dateStr}')">Delete</button>
+                </div>
+                <div class="summary-label">AI Summary</div>
+                <div class="summary-preview">${escapeHtml(data.summary)}</div>
+              </div>`;
           }
-          list
-            .sort((a, b) => new Date(a.ts) - new Date(b.ts))
-            .forEach(e => {
-              const li = document.createElement('li');
-              const time = new Date(e.ts).toLocaleTimeString();
-              li.textContent = `[${time}] ${e.text}`;
-              ul.appendChild(li);
-            });
+          
+          html += '</div>';
+          return html;
+        }).join('');
+
+        // Add click handlers
+        container.querySelectorAll('.entry-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('action-btn')) {
+              const dateStr = item.dataset.date;
+              const index = parseInt(item.dataset.index);
+              showEntry(dateStr, index);
+            }
+          });
         });
+        
+        container.querySelectorAll('.summary-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('action-btn')) {
+              const dateStr = item.dataset.date;
+              showSummary(dateStr);
+            }
+          });
+        });
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      async function showEntry(dateStr, index) {
+        const entriesByDate = await window.scrum.getEntriesByDate();
+        const data = entriesByDate[dateStr];
+        if (!data || !data.entries[index]) return;
+        
+        const entry = data.entries[index];
+        const time = new Date(entry.ts).toLocaleTimeString();
+        
+        setMode('summary');
+        $('#summary').innerHTML = `
+          <h4>Entry from ${data.displayDate} at ${time}</h4>
+          <p style="margin-top: 16px;">${escapeHtml(entry.text)}</p>
+        `;
+      }
+
+      async function showSummary(dateStr) {
+        const entriesByDate = await window.scrum.getEntriesByDate();
+        const data = entriesByDate[dateStr];
+        if (!data || !data.summary) return;
+        
+        currentEditingSummary = { date: dateStr, content: data.summary };
+        setMode('summary');
+        $('#summary').innerHTML = `
+          <h4>AI Summary for ${data.displayDate}</h4>
+          <pre style="margin-top: 16px; white-space: pre-wrap;">${escapeHtml(data.summary)}</pre>
+        `;
+      }
+
+      async function editEntry(dateStr, index) {
+        const entriesByDate = await window.scrum.getEntriesByDate();
+        const data = entriesByDate[dateStr];
+        if (!data || !data.entries[index]) return;
+        
+        const entry = data.entries[index];
+        currentEditingEntry = { dateStr, index, text: entry.text };
+        
+        setMode('summary');
+        $('#summary').innerHTML = `
+          <h4>Edit Entry</h4>
+          <textarea id="edit-textarea" style="width: 100%; height: 120px; margin: 16px 0;">${escapeHtml(entry.text)}</textarea>
+          <div class="row">
+            <button onclick="saveEditedEntry()">Save Changes</button>
+            <button onclick="cancelEdit()">Cancel</button>
+          </div>
+        `;
+        $('#edit-textarea').focus();
+      }
+
+      async function saveEditedEntry() {
+        if (!currentEditingEntry) return;
+        
+        const newText = $('#edit-textarea').value.trim();
+        if (!newText) return;
+        
+        const result = await window.scrum.updateEntry(currentEditingEntry.dateStr, currentEditingEntry.index, newText);
+        
+        if (result.success) {
+          loadEntries();
+          setMode('input');
+        } else {
+          alert('Failed to update entry: ' + (result.error || 'Unknown error'));
+        }
+      }
+
+      async function editSummary(dateStr) {
+        const entriesByDate = await window.scrum.getEntriesByDate();
+        const data = entriesByDate[dateStr];
+        if (!data || !data.summary) return;
+
+        currentEditingSummary = { date: dateStr, content: data.summary };
+        
+        setMode('summary');
+        $('#summary').innerHTML = `
+          <h4>Edit AI Summary</h4>
+          <textarea id="edit-textarea" style="width: 100%; min-height: 300px; margin: 16px 0;">${escapeHtml(data.summary)}</textarea>
+          <div class="row">
+            <button onclick="saveEditedSummary()">Save Changes</button>
+            <button onclick="cancelEdit()">Cancel</button>
+          </div>
+        `;
+        $('#edit-textarea').focus();
+      }
+
+      async function saveEditedSummary() {
+        if (!currentEditingSummary) return;
+        
+        const newContent = $('#edit-textarea').value;
+        const result = await window.scrum.updateSummary(currentEditingSummary.date, newContent);
+        
+        if (result.success) {
+          $('#summary').textContent = newContent;
+          loadEntries();
+        } else {
+          alert('Failed to update summary: ' + (result.error || 'Unknown error'));
+        }
+      }
+
+      function cancelEdit() {
+        if (currentEditingSummary) {
+          $('#summary').textContent = currentEditingSummary.content;
+        }
+      }
+
+      async function deleteEntry(dateStr, index) {
+        if (!confirm('Delete this entry?')) return;
+        
+        const result = await window.scrum.deleteEntry(dateStr, index);
+        if (result.success) {
+          loadEntries();
+        } else {
+          alert('Failed to delete entry: ' + (result.error || 'Unknown error'));
+        }
+      }
+
+      async function deleteSummary(dateStr) {
+        if (!confirm('Delete this AI summary?')) return;
+        
+        const result = await window.scrum.deleteSummary(dateStr);
+        if (result.success) {
+          loadEntries();
+          if (currentEditingSummary && currentEditingSummary.date === dateStr) {
+            setMode('input');
+          }
+        } else {
+          alert('Failed to delete summary: ' + (result.error || 'Unknown error'));
+        }
       }
 
       $('#save').addEventListener('click', async () => {
         await window.scrum.saveEntry($('#entry').value);
-        updateEntries();
+        loadEntries();
       });
       $('#skip').addEventListener('click', async () => {
         await window.scrum.hideWindow();
@@ -117,26 +450,38 @@
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           await window.scrum.saveEntry($('#entry').value);
-          updateEntries();
+          loadEntries();
         }
       });
       $('#refresh').addEventListener('click', async () => {
         const s = await window.scrum.summarizeNow();
         $('#summary').textContent = s;
-        updateEntries();
+        loadEntries();
       });
 
-      // Collapse/expand entries
-      let collapsed = false;
-      $('#toggle-entries').addEventListener('click', () => {
-        collapsed = !collapsed;
-        $('#entries-container').style.display = collapsed ? 'none' : 'block';
-        $('#toggle-entries').textContent = collapsed ? 'Expand' : 'Collapse';
+      // Summarize button in sidebar
+      $('#summarize-now-btn').addEventListener('click', async () => {
+        setMode('summary');
+        $('#summary').textContent = 'Generating summary...';
+        const s = await window.scrum.summarizeNow();
+        $('#summary').textContent = s;
+        loadEntries();
       });
+
+      // Make functions global for onclick handlers
+      window.editEntry = editEntry;
+      window.deleteEntry = deleteEntry;
+      window.editSummary = editSummary;
+      window.deleteSummary = deleteSummary;
+      window.saveEditedEntry = saveEditedEntry;
+      window.saveEditedSummary = saveEditedSummary;
+      window.cancelEdit = cancelEdit;
+      window.showEntry = showEntry;
+      window.showSummary = showSummary;
 
       // default view when opened manually
       setMode('input');
-      updateEntries();
+      loadEntries();
     </script>
   </body>
   </html>

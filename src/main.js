@@ -272,6 +272,115 @@ app.whenReady().then(() => {
     return true;
   });
 
+  ipcMain.handle('get-all-summaries', () => {
+    const summariesDir = summariesPath();
+    if (!fs.existsSync(summariesDir)) return [];
+    
+    const files = fs.readdirSync(summariesDir)
+      .filter(f => f.startsWith('summary-') && f.endsWith('.txt'))
+      .sort((a, b) => b.localeCompare(a)); // Sort newest first
+    
+    return files.map(file => {
+      const dateStr = file.replace('summary-', '').replace('.txt', '');
+      const content = fs.readFileSync(path.join(summariesDir, file), 'utf-8');
+      return {
+        id: dateStr,
+        date: dateStr,
+        content: content,
+        displayDate: dayjs(dateStr).format('MMM D, YYYY')
+      };
+    });
+  });
+
+  ipcMain.handle('update-summary', (_e, dateStr, newContent) => {
+    try {
+      saveSummary(dateStr, newContent);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update summary:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('delete-summary', (_e, dateStr) => {
+    try {
+      const summaryPath = path.join(summariesPath(), `summary-${dateStr}.txt`);
+      if (fs.existsSync(summaryPath)) {
+        fs.unlinkSync(summaryPath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to delete summary:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('get-entries-by-date', () => {
+    const entriesDir = path.join(getBaseDir(), 'entries');
+    const summariesDir = summariesPath();
+    
+    if (!fs.existsSync(entriesDir)) return {};
+    
+    const entryFiles = fs.readdirSync(entriesDir)
+      .filter(f => f.startsWith('entries-') && f.endsWith('.json'));
+    
+    const result = {};
+    
+    // Load entries for each date
+    entryFiles.forEach(file => {
+      const dateStr = file.replace('entries-', '').replace('.json', '');
+      const entries = loadEntries(dateStr);
+      
+      // Check if there's a summary for this date
+      const summaryPath = path.join(summariesDir, `summary-${dateStr}.txt`);
+      let summary = null;
+      if (fs.existsSync(summaryPath)) {
+        summary = fs.readFileSync(summaryPath, 'utf-8');
+      }
+      
+      result[dateStr] = {
+        date: dateStr,
+        displayDate: dayjs(dateStr).format('MMM D, YYYY'),
+        entries: entries,
+        summary: summary
+      };
+    });
+    
+    return result;
+  });
+
+  ipcMain.handle('update-entry', (_e, dateStr, entryIndex, newText) => {
+    try {
+      const entries = loadEntries(dateStr);
+      if (entryIndex >= 0 && entryIndex < entries.length) {
+        entries[entryIndex].text = newText;
+        const p = entriesPathFor(dateStr);
+        fs.writeFileSync(p, JSON.stringify(entries, null, 2));
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid entry index' };
+    } catch (error) {
+      console.error('Failed to update entry:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('delete-entry', (_e, dateStr, entryIndex) => {
+    try {
+      const entries = loadEntries(dateStr);
+      if (entryIndex >= 0 && entryIndex < entries.length) {
+        entries.splice(entryIndex, 1);
+        const p = entriesPathFor(dateStr);
+        fs.writeFileSync(p, JSON.stringify(entries, null, 2));
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid entry index' };
+    } catch (error) {
+      console.error('Failed to delete entry:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Show an input window on first launch so user sees it working
   setTimeout(() => {
     showInput();
