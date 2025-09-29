@@ -18,6 +18,35 @@
       textarea { width: 100%; height: 160px; }
       .row { margin-top: 12px; display: flex; gap: 8px; }
       pre { white-space: pre-wrap; }
+      .markdown-content {
+        line-height: 1.6;
+      }
+      .markdown-content h2 {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        color: #333;
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+      .markdown-content ul {
+        margin: 0.5em 0;
+        padding-left: 1.5em;
+      }
+      .markdown-content li {
+        margin: 0.25em 0;
+      }
+      .markdown-content strong {
+        color: #d32f2f;
+        font-weight: 600;
+      }
+      @media (prefers-color-scheme: dark) {
+        .markdown-content h2 {
+          color: #e0e0e0;
+        }
+        .markdown-content strong {
+          color: #ff5252;
+        }
+      }
       .muted { color: #666; font-size: 12px; }
       .entries-container {
         flex: 1;
@@ -201,7 +230,7 @@
             <button id="refresh">Re-summarize</button>
             <span class="muted">Copied to clipboard on summarize</span>
           </div>
-          <pre id="summary"></pre>
+          <div id="summary" class="markdown-content"></div>
         </div>
       </main>
     </div>
@@ -224,10 +253,12 @@
           $('#entry').value = '';
           $('#entry').focus();
         } else if (mode === 'summary') {
-          $('#summary').textContent = content || '';
-          if (!content) {
+          if (content) {
+            $('#summary').innerHTML = window.scrum.parseMarkdown(content);
+          } else {
+            $('#summary').innerHTML = '';
             window.scrum.summarizeNow().then(s => {
-              $('#summary').textContent = s || '';
+              $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
               loadEntries(); // Reload entries after creating new summary
             });
           }
@@ -317,10 +348,10 @@
         
         const entry = data.entries[index];
         const time = new Date(entry.ts).toLocaleTimeString();
-        
+
         setMode('summary');
         $('#summary').innerHTML = `
-          <h4>Entry from ${data.displayDate} at ${time}</h4>
+          <h3>Entry from ${data.displayDate} at ${time}</h3>
           <p style="margin-top: 16px;">${escapeHtml(entry.text)}</p>
         `;
       }
@@ -333,8 +364,8 @@
         currentEditingSummary = { date: dateStr, content: data.summary };
         setMode('summary');
         $('#summary').innerHTML = `
-          <h4>AI Summary for ${data.displayDate}</h4>
-          <pre style="margin-top: 16px; white-space: pre-wrap;">${escapeHtml(data.summary)}</pre>
+          <h3>AI Summary for ${data.displayDate}</h3>
+          <div style="margin-top: 16px;">${window.scrum.parseMarkdown(data.summary)}</div>
         `;
       }
 
@@ -348,7 +379,7 @@
         
         setMode('summary');
         $('#summary').innerHTML = `
-          <h4>Edit Entry</h4>
+          <h3>Edit Entry</h3>
           <textarea id="edit-textarea" style="width: 100%; height: 120px; margin: 16px 0;">${escapeHtml(entry.text)}</textarea>
           <div class="row">
             <button onclick="saveEditedEntry()">Save Changes</button>
@@ -383,7 +414,7 @@
         
         setMode('summary');
         $('#summary').innerHTML = `
-          <h4>Edit AI Summary</h4>
+          <h3>Edit AI Summary</h3>
           <textarea id="edit-textarea" style="width: 100%; min-height: 300px; margin: 16px 0;">${escapeHtml(data.summary)}</textarea>
           <div class="row">
             <button onclick="saveEditedSummary()">Save Changes</button>
@@ -398,9 +429,9 @@
         
         const newContent = $('#edit-textarea').value;
         const result = await window.scrum.updateSummary(currentEditingSummary.date, newContent);
-        
+
         if (result.success) {
-          $('#summary').textContent = newContent;
+          $('#summary').innerHTML = window.scrum.parseMarkdown(newContent);
           loadEntries();
         } else {
           alert('Failed to update summary: ' + (result.error || 'Unknown error'));
@@ -409,7 +440,7 @@
 
       function cancelEdit() {
         if (currentEditingSummary) {
-          $('#summary').textContent = currentEditingSummary.content;
+          $('#summary').innerHTML = window.scrum.parseMarkdown(currentEditingSummary.content);
         }
       }
 
@@ -455,16 +486,16 @@
       });
       $('#refresh').addEventListener('click', async () => {
         const s = await window.scrum.summarizeNow();
-        $('#summary').textContent = s;
+        $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
         loadEntries();
       });
 
       // Summarize button in sidebar
       $('#summarize-now-btn').addEventListener('click', async () => {
         setMode('summary');
-        $('#summary').textContent = 'Generating summary...';
+        $('#summary').innerHTML = '<p>Generating summary...</p>';
         const s = await window.scrum.summarizeNow();
-        $('#summary').textContent = s;
+        $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
         loadEntries();
       });
 

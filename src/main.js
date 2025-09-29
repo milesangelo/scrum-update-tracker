@@ -182,6 +182,8 @@ function createMainWindow() {
     title: "Scrum Update Tracker",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
@@ -220,20 +222,42 @@ function showInput() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
   }
-  mainWindow.webContents.send("mode", { mode: "input" });
-  positionNearTray(mainWindow);
-  mainWindow.show();
-  mainWindow.focus();
+
+  // Wait for the window to be ready before sending the mode
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send("mode", { mode: "input" });
+      positionNearTray(mainWindow);
+      mainWindow.show();
+      mainWindow.focus();
+    });
+  } else {
+    mainWindow.webContents.send("mode", { mode: "input" });
+    positionNearTray(mainWindow);
+    mainWindow.show();
+    mainWindow.focus();
+  }
 }
 
 function showSummary(content) {
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
   }
-  mainWindow.webContents.send("mode", { mode: "summary", content });
-  positionNearTray(mainWindow);
-  mainWindow.show();
-  mainWindow.focus();
+
+  // Wait for the window to be ready before sending the mode
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send("mode", { mode: "summary", content });
+      positionNearTray(mainWindow);
+      mainWindow.show();
+      mainWindow.focus();
+    });
+  } else {
+    mainWindow.webContents.send("mode", { mode: "summary", content });
+    positionNearTray(mainWindow);
+    mainWindow.show();
+    mainWindow.focus();
+  }
 }
 
 function notify(title, body, onClick) {

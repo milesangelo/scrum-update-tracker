@@ -2,17 +2,7 @@ const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-
-const systemPrompt = `You are helping prepare daily scrum updates.
-
-Given a chronological list of short work notes for a single day:
-- If a work note contains a ticket number, fetch the ticket details from Jira and use the description to add more context to the work note.
-- Collapse redundancy and cluster by topic.
-- Produce 3-6 concise bullets focused on outcomes, shipped work, blockers, and next steps.
-- Prefer clear, non-verbose language suitable for a standup update.
-- If there are blockers, include them.
-- If work spans multiple items, group them sensibly.
-Return only the bullets, prefixed with "- ".`;
+const { systemPrompt } = require("./ai-config");
 
 async function checkClaudeCodeInstalled() {
   return new Promise((resolve) => {
