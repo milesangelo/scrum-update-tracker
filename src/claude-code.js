@@ -30,32 +30,45 @@ Work notes for today:
 ${notes}`;
 
   return new Promise((resolve, reject) => {
-    // Use spawn instead of exec for better handling of stdin
     const { spawn } = require("child_process");
 
-    console.log("🚀 Executing Claude Code with stdin input");
+    console.log("🚀 Executing Claude Code with spawn and stdin");
 
-    // Use spawn with stdin pipe
+    // Use spawn with proper stdio handling and ensure proper environment
     const claudeProcess = spawn("claude", ["--print"], {
+      stdio: ['pipe', 'pipe', 'pipe'],
       shell: true,
       windowsHide: true,
+      cwd: process.cwd(), // Ensure we're in the right directory
+      env: { ...process.env }, // Pass through all environment variables
     });
 
     let stdout = "";
     let stderr = "";
 
+    // Set up timeout
+    const timeout = setTimeout(() => {
+      console.log("⏰ Claude Code process timed out");
+      claudeProcess.kill('SIGTERM');
+      reject(new Error("Claude Code process timed out after 120 seconds"));
+    }, 120000);
+
     // Capture stdout
     claudeProcess.stdout.on("data", (data) => {
       stdout += data.toString();
+      console.log("📥 Received stdout chunk:", data.toString().substring(0, 100));
     });
 
     // Capture stderr
     claudeProcess.stderr.on("data", (data) => {
       stderr += data.toString();
+      console.log("📥 Received stderr chunk:", data.toString());
     });
 
     // Handle process completion
     claudeProcess.on("close", (code) => {
+      clearTimeout(timeout);
+
       if (code !== 0) {
         console.error("❌ Claude Code exited with code:", code);
         console.error("  - Stderr:", stderr);
@@ -65,20 +78,21 @@ ${notes}`;
 
       const result = stdout.trim();
       console.log("✅ Claude Code completed successfully");
-      console.log(result);
       resolve(result);
     });
 
     // Handle process errors
     claudeProcess.on("error", (error) => {
-      console.error("❌ Process error occurred:");
-      console.error("  - Error:", error.message);
+      clearTimeout(timeout);
+      console.error("❌ Process error occurred:", error.message);
       reject(new Error(`Failed to start Claude Code: ${error.message}`));
     });
 
     // Write the prompt to stdin and close it
+    console.log("✍️ Writing prompt to stdin...");
     claudeProcess.stdin.write(fullPrompt);
     claudeProcess.stdin.end();
+    console.log("✍️ Prompt written, stdin closed");
   });
 }
 

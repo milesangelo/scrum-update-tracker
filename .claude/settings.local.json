@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__atlassian__searchJiraIssuesUsingJql",
-      "mcp__atlassian__getAccessibleAtlassianResources"
+      "mcp__atlassian__getAccessibleAtlassianResources",
+      "mcp__atlassian__getJiraIssue"
     ],
     "deny": [],
     "ask": []

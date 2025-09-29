@@ -243,15 +243,26 @@
 
       function setMode(m) {
         mode = m;
-        $('#input-panel').style.display = m === 'input' ? 'block' : 'none';
-        $('#summary-panel').style.display = m === 'summary' ? 'block' : 'none';
+        const inputPanel = $('#input-panel');
+        const summaryPanel = $('#summary-panel');
+
+        if (m === 'input') {
+          inputPanel.style.display = 'block';
+          summaryPanel.style.display = 'none';
+        } else {
+          inputPanel.style.display = 'none';
+          summaryPanel.style.display = 'block';
+        }
       }
 
+      // Listen for mode changes from main process
       window.scrum.onMode(({ mode, content }) => {
         setMode(mode);
         if (mode === 'input') {
           $('#entry').value = '';
-          $('#entry').focus();
+          setTimeout(() => {
+            $('#entry').focus();
+          }, 100);
         } else if (mode === 'summary') {
           if (content) {
             $('#summary').innerHTML = window.scrum.parseMarkdown(content);

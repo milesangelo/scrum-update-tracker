@@ -101,7 +101,9 @@ function saveSummary(dateStr, content) {
 }
 
 function withinWorkHours() {
+  // If WORK_HOURS_ONLY is not set to "true", always allow
   if (String(process.env.WORK_HOURS_ONLY).toLowerCase() !== "true") return true;
+
   const h = dayjs().hour();
   return h >= 9 && h < 17;
 }
@@ -187,8 +189,12 @@ function createMainWindow() {
     },
   });
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+  mainWindow.on("blur", () => {
+    mainWindow.hide();
   });
 }
 
@@ -218,13 +224,18 @@ function positionNearTray(win) {
 }
 
 function showInput() {
-  if (!withinWorkHours()) return;
+  // Recreate window if it doesn't exist or was destroyed
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
-  }
-
-  // Wait for the window to be ready before sending the mode
-  if (mainWindow.webContents.isLoading()) {
+    // Wait for new window to load
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send("mode", { mode: "input" });
+      positionNearTray(mainWindow);
+      mainWindow.show();
+      mainWindow.focus();
+    });
+  } else if (mainWindow.webContents.isLoading()) {
+    // Window exists but is still loading
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send("mode", { mode: "input" });
       positionNearTray(mainWindow);
@@ -232,6 +243,10 @@ function showInput() {
       mainWindow.focus();
     });
   } else {
+    // Window exists and is ready
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
     mainWindow.webContents.send("mode", { mode: "input" });
     positionNearTray(mainWindow);
     mainWindow.show();
@@ -240,12 +255,18 @@ function showInput() {
 }
 
 function showSummary(content) {
+  // Recreate window if it doesn't exist or was destroyed
   if (!mainWindow || mainWindow.isDestroyed()) {
     createMainWindow();
-  }
-
-  // Wait for the window to be ready before sending the mode
-  if (mainWindow.webContents.isLoading()) {
+    // Wait for new window to load
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send("mode", { mode: "summary", content });
+      positionNearTray(mainWindow);
+      mainWindow.show();
+      mainWindow.focus();
+    });
+  } else if (mainWindow.webContents.isLoading()) {
+    // Window exists but is still loading
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send("mode", { mode: "summary", content });
       positionNearTray(mainWindow);
@@ -253,6 +274,7 @@ function showSummary(content) {
       mainWindow.focus();
     });
   } else {
+    // Window exists and is ready
     mainWindow.webContents.send("mode", { mode: "summary", content });
     positionNearTray(mainWindow);
     mainWindow.show();
@@ -326,10 +348,18 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("summarize-now", async () => {
+    console.log("📋 Starting summarization...");
     const dateStr = dayjs().format("YYYY-MM-DD");
     const entries = loadEntries(dateStr);
+    console.log("📊 Found entries for", dateStr, ":", entries.length);
+
     if (entries.length === 0) return "No entries for today.";
+
+    console.log("🤖 Calling AI provider...");
     const summary = await AIProvider.summarize(entries);
+    console.log("📝 AI summary received:", JSON.stringify(summary));
+    console.log("📝 Summary length:", summary ? summary.length : 0);
+
     clipboard.writeText(summary);
     return summary;
   });
