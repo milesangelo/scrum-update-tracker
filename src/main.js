@@ -231,16 +231,14 @@ function showInput() {
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send("mode", { mode: "input" });
       positionNearTray(mainWindow);
-      mainWindow.show();
-      mainWindow.focus();
+      mainWindow.showInactive();
     });
   } else if (mainWindow.webContents.isLoading()) {
     // Window exists but is still loading
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send("mode", { mode: "input" });
       positionNearTray(mainWindow);
-      mainWindow.show();
-      mainWindow.focus();
+      mainWindow.showInactive();
     });
   } else {
     // Window exists and is ready
@@ -249,8 +247,7 @@ function showInput() {
     }
     mainWindow.webContents.send("mode", { mode: "input" });
     positionNearTray(mainWindow);
-    mainWindow.show();
-    mainWindow.focus();
+    mainWindow.showInactive();
   }
 }
 
