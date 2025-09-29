@@ -357,6 +357,7 @@ app.whenReady().then(() => {
     console.log("📝 AI summary received:", JSON.stringify(summary));
     console.log("📝 Summary length:", summary ? summary.length : 0);
 
+    saveSummary(dateStr, summary);
     clipboard.writeText(summary);
     return summary;
   });
