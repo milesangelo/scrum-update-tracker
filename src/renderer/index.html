@@ -5,7 +5,11 @@
     <title>Scrum Update Tracker</title>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 0;
+        --bg-color: #fff;
+      }
       .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
       .sidebar { 
         border-right: 1px solid #ddd; 
@@ -14,9 +18,67 @@
         display: flex;
         flex-direction: column;
       }
-      .content { padding: 16px; overflow: auto; }
-      textarea { width: 100%; height: 160px; }
+      .content {
+        padding: 16px;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        padding-right: 20px;
+      }
+      textarea {
+        width: 100%;
+        height: 160px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        background: transparent;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #2196f3;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+      }
+      textarea::placeholder {
+        color: #888;
+      }
       .row { margin-top: 12px; display: flex; gap: 8px; }
+
+      /* Modern button styling */
+      #save, #skip {
+        border: none;
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+      #save {
+        background: #2196f3;
+        color: white;
+      }
+      #save:hover {
+        background: #1976d2;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+      }
+      #skip {
+        background: #f5f5f5;
+        color: #666;
+        border: 1px solid #e0e0e0;
+      }
+      #skip:hover {
+        background: #ebebeb;
+        border-color: #d0d0d0;
+      }
+      #save:active, #skip:active {
+        transform: translateY(0);
+      }
       pre { white-space: pre-wrap; }
       .markdown-content {
         line-height: 1.6;
@@ -52,6 +114,44 @@
         flex: 1;
         overflow-y: auto;
         margin-bottom: 12px;
+        scrollbar-gutter: stable;
+        padding-right: 4px;
+      }
+
+      /* Modern scrollbar styling */
+      .entries-container::-webkit-scrollbar {
+        width: 8px;
+      }
+      .entries-container::-webkit-scrollbar-track {
+        background: #f8f8f8;
+        border-radius: 4px;
+        margin: 2px 0;
+      }
+      .entries-container::-webkit-scrollbar-thumb {
+        background: #d0d0d0;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      .entries-container::-webkit-scrollbar-thumb:hover {
+        background: #a0a0a0;
+      }
+
+      /* Modern scrollbar styling for summary content */
+      .content::-webkit-scrollbar {
+        width: 8px;
+      }
+      .content::-webkit-scrollbar-track {
+        background: #f8f8f8;
+        border-radius: 4px;
+        margin: 2px 0;
+      }
+      .content::-webkit-scrollbar-thumb {
+        background: #d0d0d0;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      .content::-webkit-scrollbar-thumb:hover {
+        background: #a0a0a0;
       }
       .date-group {
         margin-bottom: 16px;
@@ -61,8 +161,41 @@
         font-size: 13px;
         color: #555;
         margin-bottom: 8px;
-        padding: 4px 0;
+        padding: 4px 8px;
         border-bottom: 1px solid #e0e0e0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background-color 0.2s;
+        border-radius: 4px;
+      }
+      .date-header:hover {
+        background-color: #f9f9f9;
+      }
+      .date-title {
+        flex: 1;
+      }
+      .collapse-indicator {
+        font-size: 12px;
+        color: #888;
+        transition: transform 0.2s ease;
+        margin-left: 8px;
+      }
+      .date-group.collapsed .collapse-indicator {
+        transform: rotate(-90deg);
+      }
+      .date-content {
+        transition: max-height 0.3s ease, opacity 0.3s ease;
+        overflow: hidden;
+      }
+      .date-group.collapsed .date-content {
+        max-height: 0;
+        opacity: 0;
+      }
+      .date-group:not(.collapsed) .date-content {
+        max-height: 1000px;
+        opacity: 1;
       }
       .entry-item, .summary-item {
         background: #f5f5f5;
@@ -140,18 +273,25 @@
         color: #d32f2f;
       }
       .summarize-btn {
-        background: #1976d2;
+        background: #2196f3;
         color: white;
         border: none;
         border-radius: 6px;
         padding: 10px 16px;
         font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
         width: 100%;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
+        font-family: inherit;
       }
       .summarize-btn:hover {
-        background: #1565c0;
+        background: #1976d2;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+      }
+      .summarize-btn:active {
+        transform: translateY(0);
       }
       .no-summaries {
         text-align: center;
@@ -159,17 +299,195 @@
         padding: 24px;
         font-size: 13px;
       }
+      .create-summary-item {
+        margin-top: 8px;
+        text-align: center;
+      }
+      .create-summary {
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .create-summary:hover {
+        background: #45a049;
+      }
+
+      /* Spinner animation */
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .generating {
+        display: flex;
+        align-items: center;
+        color: #666;
+        font-style: italic;
+      }
+
+      /* Modern resummarize button */
+      .resummarize-btn {
+        background: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .resummarize-btn:hover {
+        background: #1976d2;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+      }
+      .resummarize-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Summary header with button */
+      .summary-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .summary-header h3 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Copy to clipboard icon - modern overlapping squares */
+      .copy-icon {
+        cursor: pointer;
+        color: #666;
+        width: 16px;
+        height: 16px;
+        position: relative;
+        transition: color 0.2s ease;
+        user-select: none;
+        display: inline-block;
+      }
+      .copy-icon::before,
+      .copy-icon::after {
+        content: '';
+        position: absolute;
+        border: 1.5px solid currentColor;
+        border-radius: 2px;
+      }
+      .copy-icon::before {
+        width: 10px;
+        height: 10px;
+        top: 0;
+        left: 3px;
+      }
+      .copy-icon::after {
+        width: 10px;
+        height: 10px;
+        top: 3px;
+        left: 0;
+        background: var(--bg-color, #fff);
+      }
+      .copy-icon:hover {
+        color: #2196f3;
+      }
+      .copy-icon:active {
+        transform: scale(0.95);
+      }
     </style>
     <style>
     @media (prefers-color-scheme: dark) {
-      body { background: #1e1e1e; color: #e0e0e0; }
-      textarea { background: #2b2b2b; color: #e0e0e0; border: 1px solid #3c3c3c; }
-      button { background: #3a3a3a; color: #fff; border: 1px solid #555; }
+      body {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        --bg-color: #1e1e1e;
+      }
+      textarea {
+        background: #2b2b2b;
+        color: #e0e0e0;
+        border-color: #3c3c3c;
+      }
+      textarea:focus {
+        border-color: #64b5f6;
+        box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+      }
+      textarea::placeholder {
+        color: #aaa;
+      }
+
+      /* Dark mode button styling */
+      #save {
+        background: #1976d2;
+      }
+      #save:hover {
+        background: #1565c0;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.4);
+      }
+      #skip {
+        background: #3a3a3a;
+        color: #e0e0e0;
+        border-color: #555;
+      }
+      #skip:hover {
+        background: #444;
+        border-color: #666;
+      }
       .muted { color: #aaaaaa; }
       .sidebar { border-right-color: #3c3c3c; }
-      .date-header { 
-        color: #bbb; 
+      .date-header {
+        color: #bbb;
         border-bottom-color: #3c3c3c;
+      }
+      .date-header:hover {
+        background-color: #2a2a2a;
+      }
+      .collapse-indicator {
+        color: #888;
+      }
+
+      /* Dark mode modern scrollbar */
+      .entries-container::-webkit-scrollbar-track {
+        background: #333;
+      }
+      .entries-container::-webkit-scrollbar-thumb {
+        background: #555;
+      }
+      .entries-container::-webkit-scrollbar-thumb:hover {
+        background: #777;
+      }
+
+      /* Dark mode modern scrollbar for summary content */
+      .content::-webkit-scrollbar-track {
+        background: #333;
+      }
+      .content::-webkit-scrollbar-thumb {
+        background: #555;
+      }
+      .content::-webkit-scrollbar-thumb:hover {
+        background: #777;
       }
       .entry-item, .summary-item {
         background: #2b2b2b;
@@ -198,10 +516,44 @@
         background: #444;
       }
       .summarize-btn {
-        background: #2196f3;
+        background: #1976d2;
       }
       .summarize-btn:hover {
+        background: #1565c0;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.4);
+      }
+      .create-summary {
+        background: #4caf50;
+      }
+      .create-summary:hover {
+        background: #66bb6a;
+      }
+
+      /* Dark mode spinner */
+      .spinner {
+        border-color: #444;
+        border-top-color: #64b5f6;
+      }
+
+      .generating {
+        color: #aaa;
+      }
+
+      /* Dark mode resummarize button */
+      .resummarize-btn {
         background: #1976d2;
+      }
+      .resummarize-btn:hover {
+        background: #1565c0;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.4);
+      }
+
+      /* Dark mode copy icon */
+      .copy-icon {
+        color: #aaa;
+      }
+      .copy-icon:hover {
+        color: #64b5f6;
       }
     }
     </style>
@@ -225,11 +577,6 @@
           </div>
         </div>
         <div id="summary-panel" style="display:none">
-          <h3>Daily Summary</h3>
-          <div class="row">
-            <button id="refresh">Re-summarize</button>
-            <span class="muted">Copied to clipboard on summarize</span>
-          </div>
           <div id="summary" class="markdown-content"></div>
         </div>
       </main>
@@ -265,11 +612,58 @@
           }, 100);
         } else if (mode === 'summary') {
           if (content) {
-            $('#summary').innerHTML = window.scrum.parseMarkdown(content);
+            // This is when showing summary with provided content - add Daily Summary header
+            const today = new Date().toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric'
+            });
+            $('#summary').innerHTML = `
+              <div class="summary-header">
+                <h3>
+                  <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+                  Daily Summary - ${today}
+                </h3>
+                <button id="refresh" class="resummarize-btn">
+                  <span>↻</span>
+                  Re-summarize
+                </button>
+              </div>
+              <div>${window.scrum.parseMarkdown(content)}</div>
+            `;
           } else {
-            $('#summary').innerHTML = '';
+            // Generating new AI summary - add Daily Summary header
+            const today = new Date().toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric'
+            });
+            $('#summary').innerHTML = `
+              <div class="summary-header">
+                <h3>
+                  <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+                  Daily Summary - ${today}
+                </h3>
+                <button id="refresh" class="resummarize-btn">
+                  <span>↻</span>
+                  Re-summarize
+                </button>
+              </div>
+              <div class="generating">
+                <div class="spinner"></div>
+                Generating AI summary...
+              </div>
+            `;
             window.scrum.summarizeNow().then(s => {
-              $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
+              $('#summary').innerHTML = `
+                <div class="summary-header">
+                  <h3>
+                    <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+                    Daily Summary - ${today}
+                  </h3>
+                  <button id="refresh" class="resummarize-btn">
+                    <span>↻</span>
+                    Re-summarize
+                  </button>
+                </div>
+                <div>${s ? window.scrum.parseMarkdown(s) : ''}</div>
+              `;
               loadEntries(); // Reload entries after creating new summary
             });
           }
@@ -279,7 +673,7 @@
       async function loadEntries() {
         const entriesByDate = await window.scrum.getEntriesByDate();
         const container = $('#entries-container');
-        
+
         const dates = Object.keys(entriesByDate).sort((a, b) => b.localeCompare(a));
         
         if (dates.length === 0) {
@@ -287,12 +681,20 @@
           return;
         }
 
+        // Get collapsed states from localStorage
+        const collapsedDates = JSON.parse(localStorage.getItem('collapsedDates') || '{}');
+
         container.innerHTML = dates.map(dateStr => {
           const data = entriesByDate[dateStr];
           const entries = data.entries || [];
-          
-          let html = `<div class="date-group" data-date="${dateStr}">
-            <div class="date-header">${data.displayDate}</div>`;
+          const isCollapsed = collapsedDates[dateStr] === true;
+
+          let html = `<div class="date-group${isCollapsed ? ' collapsed' : ''}" data-date="${dateStr}">
+            <div class="date-header" onclick="toggleDateGroup('${dateStr}')">
+              <div class="date-title">${data.displayDate}</div>
+              <div class="collapse-indicator">▼</div>
+            </div>
+            <div class="date-content">`;
           
           // Individual entries
           entries.forEach((entry, index) => {
@@ -313,15 +715,22 @@
             html += `
               <div class="summary-item" data-date="${dateStr}">
                 <div class="item-actions">
+                  <button class="action-btn view" onclick="showSummary('${dateStr}')">View</button>
                   <button class="action-btn edit" onclick="editSummary('${dateStr}')">Edit</button>
                   <button class="action-btn delete" onclick="deleteSummary('${dateStr}')">Delete</button>
                 </div>
                 <div class="summary-label">AI Summary</div>
                 <div class="summary-preview">${escapeHtml(data.summary)}</div>
               </div>`;
+          } else if (entries.length > 0) {
+            // Show "Create Summary" button if there are entries but no summary
+            html += `
+              <div class="create-summary-item" data-date="${dateStr}">
+                <button class="action-btn create-summary" onclick="createSummaryForDate('${dateStr}')">Create Summary</button>
+              </div>`;
           }
           
-          html += '</div>';
+          html += '</div></div>'; // Close date-content and date-group
           return html;
         }).join('');
 
@@ -362,7 +771,9 @@
 
         setMode('summary');
         $('#summary').innerHTML = `
-          <h3>Entry from ${data.displayDate} at ${time}</h3>
+          <div class="summary-header">
+            <h3>Entry from ${data.displayDate} at ${time}</h3>
+          </div>
           <p style="margin-top: 16px;">${escapeHtml(entry.text)}</p>
         `;
       }
@@ -371,12 +782,21 @@
         const entriesByDate = await window.scrum.getEntriesByDate();
         const data = entriesByDate[dateStr];
         if (!data || !data.summary) return;
-        
+
         currentEditingSummary = { date: dateStr, content: data.summary };
         setMode('summary');
         $('#summary').innerHTML = `
-          <h3>AI Summary for ${data.displayDate}</h3>
-          <div style="margin-top: 16px;">${window.scrum.parseMarkdown(data.summary)}</div>
+          <div class="summary-header">
+            <h3>
+              <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+              Daily Summary - ${data.displayDate}
+            </h3>
+            <button id="refresh" class="resummarize-btn">
+              <span>↻</span>
+              Re-summarize
+            </button>
+          </div>
+          <div>${window.scrum.parseMarkdown(data.summary)}</div>
         `;
       }
 
@@ -455,6 +875,68 @@
         }
       }
 
+      function toggleDateGroup(dateStr) {
+        const dateGroup = document.querySelector(`[data-date="${dateStr}"]`);
+        if (dateGroup) {
+          dateGroup.classList.toggle('collapsed');
+
+          // Store collapse state in localStorage
+          const collapsedDates = JSON.parse(localStorage.getItem('collapsedDates') || '{}');
+          if (dateGroup.classList.contains('collapsed')) {
+            collapsedDates[dateStr] = true;
+          } else {
+            delete collapsedDates[dateStr];
+          }
+          localStorage.setItem('collapsedDates', JSON.stringify(collapsedDates));
+        }
+      }
+
+      function copyToClipboard() {
+        // Get the summary content without the header
+        const summaryElement = $('#summary');
+        if (summaryElement) {
+          // Find the content div after the header
+          const contentDiv = summaryElement.querySelector('div:not(.summary-header)');
+          if (contentDiv) {
+            // Get the text content, or fall back to the current summary content
+            let textToCopy = '';
+            if (currentEditingSummary && currentEditingSummary.content) {
+              textToCopy = currentEditingSummary.content;
+            } else {
+              // For today's summary, we need to get it from the scrum API
+              window.scrum.summarizeNow().then(summary => {
+                if (summary) {
+                  navigator.clipboard.writeText(summary).then(() => {
+                    // Visual feedback
+                    const icon = summaryElement.querySelector('.copy-icon');
+                    if (icon) {
+                      const originalText = icon.textContent;
+                      icon.textContent = '✓';
+                      setTimeout(() => {
+                        icon.textContent = originalText;
+                      }, 1000);
+                    }
+                  });
+                }
+              });
+              return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+              // Visual feedback
+              const icon = summaryElement.querySelector('.copy-icon');
+              if (icon) {
+                const originalText = icon.textContent;
+                icon.textContent = '✓';
+                setTimeout(() => {
+                  icon.textContent = originalText;
+                }, 1000);
+              }
+            });
+          }
+        }
+      }
+
       async function deleteEntry(dateStr, index) {
         if (!confirm('Delete this entry?')) return;
         
@@ -468,7 +950,7 @@
 
       async function deleteSummary(dateStr) {
         if (!confirm('Delete this AI summary?')) return;
-        
+
         const result = await window.scrum.deleteSummary(dateStr);
         if (result.success) {
           loadEntries();
@@ -477,6 +959,43 @@
           }
         } else {
           alert('Failed to delete summary: ' + (result.error || 'Unknown error'));
+        }
+      }
+
+      async function createSummaryForDate(dateStr) {
+        setMode('summary');
+        const displayDate = new Date(dateStr).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        $('#summary').innerHTML = `
+          <div class="generating">
+            <div class="spinner"></div>
+            Generating AI summary for ${displayDate}...
+          </div>
+        `;
+
+        try {
+          const summary = await window.scrum.createSummaryForDate(dateStr);
+          if (summary) {
+            $('#summary').innerHTML = `
+              <div class="summary-header">
+                <h3>
+                  <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+                  Daily Summary - ${displayDate}
+                </h3>
+                <button id="refresh" class="resummarize-btn">
+                  <span>↻</span>
+                  Re-summarize
+                </button>
+              </div>
+              <div>${window.scrum.parseMarkdown(summary)}</div>
+            `;
+            loadEntries(); // Reload to show the new summary in sidebar
+          } else {
+            $('#summary').innerHTML = '<p>No entries found for this date to summarize.</p>';
+          }
+        } catch (error) {
+          $('#summary').innerHTML = `<p>Error creating summary: ${error.message}</p>`;
         }
       }
 
@@ -495,18 +1014,82 @@
           loadEntries();
         }
       });
-      $('#refresh').addEventListener('click', async () => {
+      // Note: #refresh is now dynamically created, so we'll use event delegation
+      document.addEventListener('click', async (e) => {
+        if (e.target.id === 'refresh' || e.target.closest('#refresh')) {
+        const today = new Date().toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        $('#summary').innerHTML = `
+          <div class="summary-header">
+            <h3>
+              <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+              Daily Summary - ${today}
+            </h3>
+            <button id="refresh" class="resummarize-btn">
+              <span>↻</span>
+              Re-summarize
+            </button>
+          </div>
+          <div class="generating">
+            <div class="spinner"></div>
+            Regenerating AI summary...
+          </div>
+        `;
         const s = await window.scrum.summarizeNow();
-        $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
+        $('#summary').innerHTML = `
+          <div class="summary-header">
+            <h3>
+              <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+              Daily Summary - ${today}
+            </h3>
+            <button id="refresh" class="resummarize-btn">
+              <span>↻</span>
+              Re-summarize
+            </button>
+          </div>
+          <div>${s ? window.scrum.parseMarkdown(s) : ''}</div>
+        `;
         loadEntries();
+        }
       });
 
       // Summarize button in sidebar
       $('#summarize-now-btn').addEventListener('click', async () => {
         setMode('summary');
-        $('#summary').innerHTML = '<p>Generating summary...</p>';
+        const today = new Date().toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        $('#summary').innerHTML = `
+          <div class="summary-header">
+            <h3>
+              <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+              Daily Summary - ${today}
+            </h3>
+            <button id="refresh" class="resummarize-btn">
+              <span>↻</span>
+              Re-summarize
+            </button>
+          </div>
+          <div class="generating">
+            <div class="spinner"></div>
+            Generating today's AI summary...
+          </div>
+        `;
         const s = await window.scrum.summarizeNow();
-        $('#summary').innerHTML = s ? window.scrum.parseMarkdown(s) : '';
+        $('#summary').innerHTML = `
+          <div class="summary-header">
+            <h3>
+              <span class="copy-icon" onclick="copyToClipboard()" title="Copy to clipboard"></span>
+              Daily Summary - ${today}
+            </h3>
+            <button id="refresh" class="resummarize-btn">
+              <span>↻</span>
+              Re-summarize
+            </button>
+          </div>
+          <div>${s ? window.scrum.parseMarkdown(s) : ''}</div>
+        `;
         loadEntries();
       });
 
@@ -520,6 +1103,9 @@
       window.cancelEdit = cancelEdit;
       window.showEntry = showEntry;
       window.showSummary = showSummary;
+      window.createSummaryForDate = createSummaryForDate;
+      window.toggleDateGroup = toggleDateGroup;
+      window.copyToClipboard = copyToClipboard;
 
       // default view when opened manually
       setMode('input');

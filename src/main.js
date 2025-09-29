@@ -175,7 +175,7 @@ function createTray() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 720,
+    width: 750,
     height: 520,
     show: false,
     resizable: true,
@@ -477,6 +477,28 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error("Failed to delete entry:", error);
       return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle("create-summary-for-date", async (_e, dateStr) => {
+    try {
+      const entries = loadEntries(dateStr);
+      if (entries.length === 0) return null;
+
+      console.log("🤖 Creating summary for", dateStr, "with", entries.length, "entries");
+      const summary = await AIProvider.summarize(entries);
+      console.log("📝 AI summary received for", dateStr);
+
+      if (summary) {
+        saveSummary(dateStr, summary);
+        clipboard.writeText(summary);
+        console.log("Summary saved and copied to clipboard");
+      }
+
+      return summary;
+    } catch (error) {
+      console.error("Failed to create summary for date:", error);
+      throw error;
     }
   });
 

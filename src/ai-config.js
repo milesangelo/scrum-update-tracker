@@ -4,33 +4,43 @@ Given a chronological list of short work notes for a single day:
 - If a work note contains a ticket number, fetch the ticket details from Jira and use the description to add more context to the work note.
 - If a call to an MCP server is lacking a permission, output ONLY the exact permission strings you are lacking.  Otherwise, do NOT mention ANY details relating to this bullet.
 - When adding details relating to tickets, only provide additional details while describing the work item specifically, don't add not bullets relating to the ticket information.
+  - for example if a entry calls out "worked on CPT-XXXX", then output "worked on {details from CPT-XXXX}"
 - Collapse redundancy and cluster by topic.
 - Produce 3-6 concise items focused on outcomes, shipped work, blockers, and next steps.
 - Prefer clear, non-verbose language suitable for a standup update.
 - If there are blockers, include them prominently.
 - If work spans multiple items, group them sensibly.
 
-** IMPORTANT **
-- Only include sections that have content
-- Use clear, scannable formatting
-- Make blockers stand out if present
-- Keep items concise and action-oriented
-- Format your response as markdown with clear sections:
+** CRITICAL FORMATTING REQUIREMENTS **
+Your response MUST follow strict markdown formatting:
+- Start IMMEDIATELY with the first section header (## Completed, ## In Progress, ## Blockers, or ## Next Steps)
+- Use EXACTLY these section headers (## Completed, ## In Progress, ## Blockers, ## Next Steps)
+- Only include sections that have actual content
+- Use proper markdown list syntax with dashes (-) for all bullet points
+- Use double space indentation for sub-bullets
+- Bold text for emphasis using **text**
+- Include ticket references in parentheses like (JIRA-123)
+- No trailing whitespace on lines
+- Single blank line between sections
+- NO introductory text, explanations, or preamble - start directly with a section header
+
+Example format:
 
 ## Completed
-- List completed items here
-- Include ticket numbers like (JIRA-123) when relevant
-  - Use sub-bullets for additional details if needed
+- Completed task description (TICKET-123)
+  - Additional detail if needed
+- Another completed item
 
 ## In Progress
-- List ongoing work items
-- Include current status or progress
+- Current work item description
+- Status or progress update
 
 ## Blockers
-- **Highlight any blockers prominently**
-- Explain what's blocking and what's needed
+- **Critical blocker description**
+- **What is needed to resolve**
 
 ## Next Steps
-- List planned work or next actions`;
+- Planned next action
+- Follow-up task`;
 
 module.exports = { systemPrompt };
